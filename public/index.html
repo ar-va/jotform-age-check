@@ -82,7 +82,9 @@
   //   language           month names, e.g. "fr" or "en-CA" (default English)
   //   labelDay, labelMonth, labelYear   dropdown placeholders
   //   ageText            line under the dropdowns, {age} is replaced (default "Age: {age}")
-  //   showAge            "No" hides the age line
+  //   showAge            "Hide" (or No/Off) hides the age line
+  //   birthdayText       greeting added on the person's birthday (default "Happy birthday! 🎉")
+  //   showBirthday       "Hide" (or No/Off) turns the greeting off
   //   futureDateText, incompleteText    error messages
   //   customCSS
 
@@ -90,9 +92,10 @@
   var text = {
     ageText: 'Age: {age}',
     futureDateText: 'Date of birth can’t be in the future.',
-    incompleteText: 'Please choose a day, month and year.'
+    incompleteText: 'Please choose a day, month and year.',
+    birthdayText: 'Happy birthday! 🎉'
   };
-  var settings = { minAge: 16, adultAge: 18, showAge: true, groups: AgeCalc.groupNames() };
+  var settings = { minAge: 16, adultAge: 18, showAge: true, showBirthday: true, groups: AgeCalc.groupNames() };
   var saved = null;   // the stored answer when an existing submission is being edited
 
   var row = document.getElementById('row');
@@ -161,7 +164,7 @@
     if (count === 0) return { state: 'empty', value: '' };
     if (count < 3 || !AgeCalc.isValidDate(dob)) return { state: 'partial', value: '' };
     if (saved && saved.age !== null && AgeCalc.toIsoDate(dob) === AgeCalc.toIsoDate(saved.dob)) {
-      return { state: 'ok', value: saved.value, age: saved.age };
+      return { state: 'ok', value: saved.value, age: saved.age, birthday: !!saved.on && AgeCalc.isBirthday(dob, saved.on) };
     }
     // Values saved before the "On" date existed fall back to today.
     var on = (saved && saved.on) || AgeCalc.today();
@@ -170,7 +173,7 @@
     var group = settings.ranges
       ? AgeCalc.groupFor(age, settings.ranges)
       : AgeCalc.ageGroup(age, settings.minAge, settings.adultAge, settings.groups);
-    return { state: 'ok', value: AgeCalc.formatValue(dob, age, group, on), age: age };
+    return { state: 'ok', value: AgeCalc.formatValue(dob, age, group, on), age: age, birthday: AgeCalc.isBirthday(dob, on) };
   }
 
   function render(result, submitting) {
@@ -178,7 +181,13 @@
     var error = result.state === 'future' || (submitting && result.state === 'partial');
     if (result.state === 'future') message = text.futureDateText;
     else if (error) message = text.incompleteText;
-    else if (result.state === 'ok' && settings.showAge) message = text.ageText.replace('{age}', result.age);
+    else if (result.state === 'ok') {
+      // On the birthday (the day of submission, or the saved "On" day when editing) add the greeting.
+      message = [
+        settings.showAge ? text.ageText.replace('{age}', result.age) : '',
+        result.birthday && settings.showBirthday ? text.birthdayText : ''
+      ].filter(Boolean).join(' · ');
+    }
     ageEl.textContent = message;
     ageEl.classList.toggle('error', error);
     Object.keys(sel).forEach(function (k) {
@@ -234,7 +243,9 @@
 
     settings.adultAge = int('adultAge', settings.adultAge);
     settings.minAge = Math.min(int('minAge', settings.minAge), settings.adultAge);
-    settings.showAge = !/^(no|false|0|hide|off)$/i.test(get('showAge'));
+    var hidden = function (name) { return /^(no|false|0|hide|off)$/i.test(get(name)); };
+    settings.showAge = !hidden('showAge');
+    settings.showBirthday = !hidden('showBirthday');
     var wanted = { above: get('groupAbove'), between: get('groupBetween'), below: get('groupBelow') };
     settings.groups = AgeCalc.groupNames(wanted);
     Object.keys(wanted).forEach(function (k) {

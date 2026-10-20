@@ -42,6 +42,15 @@
     return age;
   }
 
+  // True on the day the person turns a year older (so a Feb 29 birthday is Mar 1 in non-leap years,
+  // matching calculateAge). Not on the day of birth itself.
+  function isBirthday(dob, on) {
+    var prev = new Date(Date.UTC(on.y, on.m - 1, on.d - 1));
+    var dayBefore = { y: prev.getUTCFullYear(), m: prev.getUTCMonth() + 1, d: prev.getUTCDate() };
+    var age = calculateAge(dob, on);
+    return age > 0 && age > calculateAge(dob, dayBefore);
+  }
+
   function ageGroup(age, minAge, adultAge, names) {
     names = names || DEFAULT_GROUPS;
     if (age >= adultAge) return names.above;
@@ -156,6 +165,7 @@
     isValidDate: isValidDate,
     today: today,
     calculateAge: calculateAge,
+    isBirthday: isBirthday,
     ageGroup: ageGroup,
     formatValue: formatValue,
     parseValue: parseValue,

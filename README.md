@@ -37,6 +37,7 @@ You host it yourself, for free, on Cloudflare. Everything runs in the visitor's 
   | under 16 | `GROUP_C` |
 
   The ages (16 and 18) and the group names can be changed in the widget settings, for example to `ADULT`, `GUARDIAN` and `TOO_YOUNG`. Need a different number of groups? See [Your own age groups](#your-own-age-groups).
+- **Wishes them a happy birthday.** If the form is filled in on the person's birthday, the line under the dropdowns adds "Happy birthday! 🎉". The wording can be changed or turned off.
 - **Updates as they type.** The form's conditions react as soon as a full date is chosen, before the form is sent.
 - **Saves the date and the age together.** Each submission stores one line like `DOB: 2009-05-12 | Age: 17 | On: 2026-10-20 | Group: GROUP_B`, where **On** is the day the age was worked out.
 - **Matches your form.** Colours, font, sizes, wording, month language and date order (Day/Month/Year or Month/Day/Year) are set in Jotform, with no code changes.
@@ -242,6 +243,8 @@ When adding a parameter, fill in:
 | `labelDay` `labelMonth` `labelYear` | The dropdowns' empty-state text, e.g. `Jour` | Text | leave empty |
 | `ageText` | The line under the dropdowns; `{age}` becomes the age, e.g. `Âge : {age}` | Text | `Age: {age}` |
 | `showAge` | `Hide` hides the age line (`No`, `Off` also work); anything else shows it | Radio (options `Show`, `Hide`) | `Show` |
+| `birthdayText` | Greeting added on the person's birthday | Text | `Happy birthday! 🎉` |
+| `showBirthday` | `Hide` turns the birthday greeting off | Radio (options `Show`, `Hide`) | `Show` |
 | `futureDateText` | Message for a date in the future | Text | leave empty |
 | `incompleteText` | Message when the date is only partly chosen | Text | leave empty |
 | `accentColor` | Highlight around the active dropdown | Color | `#2e69ff` |

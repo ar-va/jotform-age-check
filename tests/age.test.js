@@ -153,3 +153,20 @@ test('ageGroups: works however Jotform passes the textarea (spaces, <br>, <p>)',
   // still strict: junk between groups is rejected
   assert.ok(AgeCalc.parseAgeGroups('ADULT = 18+ and more GUARDIAN = 16-17').error);
 });
+
+test('isBirthday: only on the day the age goes up', () => {
+  const dob = d(2008, 10, 19);
+  assert.equal(AgeCalc.isBirthday(dob, d(2026, 10, 19)), true);
+  assert.equal(AgeCalc.isBirthday(dob, d(2026, 10, 18)), false);
+  assert.equal(AgeCalc.isBirthday(dob, d(2026, 10, 20)), false);
+  assert.equal(AgeCalc.isBirthday(d(2000, 1, 1), d(2026, 1, 1)), true);   // day before is in the previous year
+  assert.equal(AgeCalc.isBirthday(dob, d(2008, 10, 19)), false);           // day of birth isn't a birthday
+});
+
+test('isBirthday: Feb 29 birthdays are greeted on Mar 1 in non-leap years', () => {
+  const dob = d(2008, 2, 29);
+  assert.equal(AgeCalc.isBirthday(dob, d(2027, 2, 28)), false);
+  assert.equal(AgeCalc.isBirthday(dob, d(2027, 3, 1)), true);
+  assert.equal(AgeCalc.isBirthday(dob, d(2028, 2, 29)), true);
+  assert.equal(AgeCalc.isBirthday(dob, d(2028, 3, 1)), false);
+});
