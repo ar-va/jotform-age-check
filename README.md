@@ -6,7 +6,7 @@ A date-of-birth field for [Jotform](https://www.jotform.com) forms that calculat
 
 You host it yourself, for free, on Cloudflare. Everything runs in the visitor's browser; there's no API key, database or monthly bill.
 
-<img src="docs/screenshot.png" alt="A form with the widget showing 12 May 2009 and Age: 17, followed by parent or guardian name, phone and photo ID fields that the form shows for 16–17-year-olds" width="560">
+<img src="docs/demo.gif" alt="Demo: choosing 12 May 2012 shows Age: 14 and a too-young message with no Submit button; changing the year to 2009 shows Age: 17 and parent or guardian fields; 2008 shows Age: 18 and a photo ID field; changing the date to 19 October adds Happy birthday" width="560">
 
 ## Contents
 
@@ -356,6 +356,7 @@ Jotform form ──iframe──▶ your-domain/        widget page (public/index
 | `src/index.ts` | The Cloudflare Worker: iframe gating and security headers |
 | `cloudflare.config.ts` | Worker name and assets; reads your address from `WIDGET_DOMAIN` |
 | `tests/age.test.js` | Unit tests for `age.js` (Node's built-in test runner) |
+| `tools/demo/` | Rebuilds `docs/demo.gif` from the current code: `sh tools/demo/make-gif.sh` (macOS with Google Chrome) |
 
 The widget uses Jotform's Custom Widget API: `subscribe("ready")` (settings, restoring a saved value), `sendData` on every change (so conditions react live), `subscribe("submit")` with `sendSubmit({ valid, value })`, and `requestFrameResize`.
 
