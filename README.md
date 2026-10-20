@@ -38,7 +38,7 @@ You host it yourself, for free, on Cloudflare. Everything runs in the visitor's 
 
   The ages (16 and 18) and the group names can be changed in the widget settings, for example to `ADULT`, `GUARDIAN` and `TOO_YOUNG`. Need a different number of groups? See [Your own age groups](#your-own-age-groups).
 - **Updates as they type.** The form's conditions react as soon as a full date is chosen, before the form is sent.
-- **Saves the date and the age together.** Each submission stores one line like `DOB: 2009-05-12 | Age: 17 | Group: GROUP_B`.
+- **Saves the date and the age together.** Each submission stores one line like `DOB: 2009-05-12 | Age: 17 | On: 2026-10-20 | Group: GROUP_B`, where **On** is the day the age was worked out.
 - **Matches your form.** Colours, font, sizes, wording, month language and date order (Day/Month/Year or Month/Day/Year) are set in Jotform, with no code changes.
 
 ## Why not Jotform's Form Calculation?
@@ -216,7 +216,7 @@ When `ageGroups` is filled in, it replaces `minAge`, `adultAge`, `groupAbove`, `
 - a line can't be read (for example a space in a name, or a missing `=`)
 - two ranges overlap (`ADULT = 18+` and `OLDER = 30+`)
 - a range is backwards (`17-13`)
-- one name is part of another (`TEEN` and `TEENS`), or of the words `DOB`, `Age`, `Group` or `NO_GROUP`. Otherwise "Contains" would match the wrong people.
+- one name is part of another (`TEEN` and `TEENS`), or of the words `DOB`, `Age`, `On`, `Group` or `NO_GROUP`. Otherwise "Contains" would match the wrong people.
 
 After changing it, send a test submission and check the saved group. The browser console (right-click → Inspect → Console) shows the reason when the setting is ignored.
 
@@ -235,7 +235,7 @@ When adding a parameter, fill in:
 | --- | --- | --- | --- |
 | `minAge` | Youngest age of the middle group (`GROUP_B` from this age) | Text | `16` |
 | `adultAge` | Age from which someone is in the oldest group (`GROUP_A`) | Text | `18` |
-| `groupAbove` `groupBetween` `groupBelow` | Names saved for the oldest, middle and youngest group, e.g. `ADULT`, `GUARDIAN`, `TOO_YOUNG`. Use letters, numbers, `_` and `-` (2–30 characters, at least one letter). A name can't be part of another name (`TEEN` and `TEENS`) or of the words `DOB`, `Age`, `Group`, otherwise "Contains" would match the wrong people; in that case the widget uses `GROUP_A`, `GROUP_B`, `GROUP_C` instead. | Text | leave empty |
+| `groupAbove` `groupBetween` `groupBelow` | Names saved for the oldest, middle and youngest group, e.g. `ADULT`, `GUARDIAN`, `TOO_YOUNG`. Use letters, numbers, `_` and `-` (2–30 characters, at least one letter). A name can't be part of another name (`TEEN` and `TEENS`) or of the words `DOB`, `Age`, `On`, `Group`, otherwise "Contains" would match the wrong people; in that case the widget uses `GROUP_A`, `GROUP_B`, `GROUP_C` instead. | Text | leave empty |
 | `ageGroups` | Any number of groups with their own ages and names, one per line, e.g. `ADULT = 18+`. Replaces the five settings above. See [Your own age groups](#your-own-age-groups). | Textarea | leave empty |
 | `dateOrder` | Order of the dropdowns: `DMY` (day, month, year), `MDY` (month first, as in the US) or `YMD` | Dropdown (options `DMY`, `MDY`, `YMD`) | `DMY` |
 | `language` | Language of the month names, as a code: `fr`, `es`, `de`, `en-CA` … | Text | leave empty (English) |
@@ -263,16 +263,16 @@ Tips:
 
 ## What gets saved
 
-Each submission has one column for the widget, holding the date of birth (always year-month-day), the age on the day it was sent, and the group:
+Each submission has one column for the widget, holding the date of birth (always year-month-day), the age, the day the age was worked out (the day the form was sent), and the group:
 
-`DOB: 2009-05-12 | Age: 17 | Group: GROUP_B`
+`DOB: 2009-05-12 | Age: 17 | On: 2026-10-20 | Group: GROUP_B`
 
 To get the date and age in separate columns, split them after exporting:
 
 - **Excel:** select the column → **Data → Text to Columns** → **Delimited** → **Other:** `|`.
-- **Google Sheets:** `=REGEXEXTRACT(B2, "\d{4}-\d{2}-\d{2}")` for the date and `=VALUE(REGEXEXTRACT(B2, "Age: (\d+)"))` for the age (replace `B2` with the cell). If Jotform sends submissions straight to a sheet, put these formulas on a separate tab so new columns Jotform adds don't overwrite them.
+- **Google Sheets:** `=REGEXEXTRACT(B2, "\d{4}-\d{2}-\d{2}")` for the date and `=VALUE(REGEXEXTRACT(B2, "Age: (\d+)"))` for the age, `=REGEXEXTRACT(B2, "On: ([\d-]+)")` for the day it was sent (replace `B2` with the cell). If Jotform sends submissions straight to a sheet, put these formulas on a separate tab so new columns Jotform adds don't overwrite them.
 
-**Editing a submission** reopens the widget with the saved date filled in. The age is worked out again from the date at that moment.
+**Editing a submission** reopens the widget with the saved date filled in and **keeps the age and group exactly as they were on the day it was sent**, even if the person has had a birthday since, or you've changed the age groups. If you correct the date of birth while editing, the age is worked out for the original **On** day, and the group with your current group settings.
 
 ## Troubleshooting
 

@@ -9,7 +9,7 @@
   var DEFAULT_GROUPS = { above: 'GROUP_A', between: 'GROUP_B', below: 'GROUP_C' };
   var GROUP_NAME_RE = /^[A-Za-z0-9_-]{2,30}$/;
   // The rest of the saved value: a name found in here would make "Contains" match every submission.
-  var FIXED_TEXT = 'dob: | age: | group: ';
+  var FIXED_TEXT = 'dob: | age: | on: | group: ';
 
   function pad(n) {
     return String(n).padStart(2, '0');
@@ -121,10 +121,21 @@
     return NO_GROUP;
   }
 
-  // Value stored in the Jotform submission, e.g. "DOB: 1990-05-12 | Age: 36 | Group: GROUP_A".
+  // Value stored in the Jotform submission, e.g. "DOB: 1990-05-12 | Age: 36 | On: 2026-10-20 | Group: GROUP_A".
   // Form conditions match on the group name with "Contains".
-  function formatValue(dob, age, group) {
-    return 'DOB: ' + toIsoDate(dob) + ' | Age: ' + age + ' | Group: ' + group;
+  // `on` is the date the age was worked out (the day of submission), so an edited submission keeps it.
+  function formatValue(dob, age, group, on) {
+    return 'DOB: ' + toIsoDate(dob) + ' | Age: ' + age + ' | On: ' + toIsoDate(on) + ' | Group: ' + group;
+  }
+
+  // Reads a saved value: { dob, age, on } (age and on are null if missing; values saved before
+  // 2026-10-20 have no "On:" date). Returns null without a valid date of birth.
+  function parseValue(value) {
+    var dob = parseDob(value);
+    if (!dob) return null;
+    var age = /Age: (\d+)/.exec(value);
+    var on = parseDob((/On: (\d{4}-\d{2}-\d{2})/.exec(value) || [])[1]);
+    return { dob: dob, age: age ? +age[1] : null, on: on };
   }
 
   function parseDob(value) {
@@ -147,6 +158,7 @@
     calculateAge: calculateAge,
     ageGroup: ageGroup,
     formatValue: formatValue,
+    parseValue: parseValue,
     parseDob: parseDob
   };
 })(this);

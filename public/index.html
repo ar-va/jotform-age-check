@@ -93,6 +93,7 @@
     incompleteText: 'Please choose a day, month and year.'
   };
   var settings = { minAge: 16, adultAge: 18, showAge: true, groups: AgeCalc.groupNames() };
+  var saved = null;   // the stored answer when an existing submission is being edited
 
   var row = document.getElementById('row');
   var sel = { day: document.getElementById('day'), month: document.getElementById('month'), year: document.getElementById('year') };
@@ -150,19 +151,26 @@
     return { y: +sel.year.value, m: +sel.month.value, d: +sel.day.value };
   }
 
-  // Recomputed on every call, so the age is relative to the moment of submission.
+  // A new answer: recomputed on every call, so the age is relative to the moment of submission.
+  // An edited submission (see restore): the saved value is kept exactly as it was while the date of
+  // birth is unchanged; if the date is corrected, the age is worked out for the original "On" date.
   // state: "empty" (nothing chosen), "partial", "future" or "ok".
   function evaluate() {
     var dob = picked();
     var count = (dob.y ? 1 : 0) + (dob.m ? 1 : 0) + (dob.d ? 1 : 0);
     if (count === 0) return { state: 'empty', value: '' };
     if (count < 3 || !AgeCalc.isValidDate(dob)) return { state: 'partial', value: '' };
-    var age = AgeCalc.calculateAge(dob, AgeCalc.today());
+    if (saved && saved.age !== null && AgeCalc.toIsoDate(dob) === AgeCalc.toIsoDate(saved.dob)) {
+      return { state: 'ok', value: saved.value, age: saved.age };
+    }
+    // Values saved before the "On" date existed fall back to today.
+    var on = (saved && saved.on) || AgeCalc.today();
+    var age = AgeCalc.calculateAge(dob, on);
     if (age < 0) return { state: 'future', value: '' };
     var group = settings.ranges
       ? AgeCalc.groupFor(age, settings.ranges)
       : AgeCalc.ageGroup(age, settings.minAge, settings.adultAge, settings.groups);
-    return { state: 'ok', value: AgeCalc.formatValue(dob, age, group), age: age };
+    return { state: 'ok', value: AgeCalc.formatValue(dob, age, group, on), age: age };
   }
 
   function render(result, submitting) {
@@ -190,14 +198,16 @@
     if (inJotform) JFCustomWidget.sendData({ value: result.value });
   }
 
-  // Refill the dropdowns from a saved value (e.g. editing a submission).
+  // Refill the dropdowns from a saved value (e.g. editing a submission) and remember it, so the
+  // age and group stay as they were on the day of submission.
   function restore(value) {
-    var dob = AgeCalc.parseDob(value);
-    if (!dob) return;
-    sel.year.value = dob.y;
-    sel.month.value = dob.m;
+    var parsed = AgeCalc.parseValue(value);
+    if (!parsed) return;
+    saved = { value: String(value).trim(), dob: parsed.dob, age: parsed.age, on: parsed.on };
+    sel.year.value = parsed.dob.y;
+    sel.month.value = parsed.dob.m;
     refreshDays();
-    sel.day.value = dob.d;
+    sel.day.value = parsed.dob.d;
   }
 
   function applySettings(raw) {

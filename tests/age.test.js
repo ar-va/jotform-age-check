@@ -63,10 +63,25 @@ test('unsafe custom group names fall back to the defaults', () => {
   assert.deepEqual({ ...AgeCalc.groupNames({ between: 'GROUP_A' }) }, defaults);
 });
 
-test('formatValue and parseDob round-trip', () => {
-  const value = AgeCalc.formatValue(d(1990, 5, 2), 36, 'GROUP_A');
-  assert.equal(value, 'DOB: 1990-05-02 | Age: 36 | Group: GROUP_A');
-  assert.deepEqual({ ...AgeCalc.parseDob(value) }, d(1990, 5, 2));
+test('formatValue and parseValue round-trip, including the date the age was worked out', () => {
+  const value = AgeCalc.formatValue(d(1990, 5, 2), 36, 'GROUP_A', d(2026, 10, 20));
+  assert.equal(value, 'DOB: 1990-05-02 | Age: 36 | On: 2026-10-20 | Group: GROUP_A');
+  const parsed = AgeCalc.parseValue(value);
+  assert.deepEqual({ dob: { ...parsed.dob }, age: parsed.age, on: { ...parsed.on } },
+    { dob: d(1990, 5, 2), age: 36, on: d(2026, 10, 20) });
+});
+
+test('parseValue reads values saved before the "On" date existed', () => {
+  const parsed = AgeCalc.parseValue('DOB: 2008-10-12 | Age: 17 | Group: GUARDIAN');
+  assert.deepEqual({ ...parsed.dob }, d(2008, 10, 12));
+  assert.equal(parsed.age, 17);
+  assert.equal(parsed.on, null);
+  assert.equal(AgeCalc.parseValue('nonsense'), null);
+});
+
+test('"ON" can\'t be a group name (it is part of the saved value)', () => {
+  assert.equal(AgeCalc.groupNames({ above: 'ON' }).above, 'GROUP_A');
+  assert.ok(AgeCalc.parseAgeGroups('ON = 18+').error);
 });
 
 test('isValidDate rejects impossible dates', () => {
