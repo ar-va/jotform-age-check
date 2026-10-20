@@ -207,7 +207,7 @@ TOO_YOUNG = 0-15
 - **Names:** letters, numbers, `_` and `-`, 2–30 characters, with at least one letter. Use the same names in your conditions.
 - **As many groups as you need**, up to 20 lines. The same name can be used on more than one line, for example `DISCOUNT = 0-12` and `DISCOUNT = 65+`.
 - **Ages that no line covers** are saved as `NO_GROUP`, so you can use that in a condition too.
-- `:` works instead of `=`. If Jotform puts everything on one line, separate the groups with `;`.
+- `:` works instead of `=`, and groups can also be separated with `;` or `,` instead of new lines.
 
 When `ageGroups` is filled in, it replaces `minAge`, `adultAge`, `groupAbove`, `groupBetween` and `groupBelow`.
 

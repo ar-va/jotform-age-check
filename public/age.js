@@ -87,7 +87,13 @@
   // Returns { groups: [{ name, from, to }] } (empty when the text is blank) or { error: "reason" };
   // on error the widget ignores the whole setting rather than guess.
   function parseAgeGroups(text) {
-    var lines = String(text || '').split(/[\r\n;,]+/).map(function (l) { return l.trim(); }).filter(Boolean);
+    // Jotform may pass the textarea with its line breaks, as HTML (<br>, <p>) or joined with spaces,
+    // so HTML becomes line breaks and every "NAME =" starts a new line.
+    var normalised = String(text || '')
+      .replace(/<[^>]*>/g, '\n')
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/([A-Za-z0-9_-]+\s*[=:])/g, '\n$1');
+    var lines = normalised.split(/[\r\n;,]+/).map(function (l) { return l.trim(); }).filter(Boolean);
     if (lines.length > MAX_GROUPS) return { error: 'more than ' + MAX_GROUPS + ' lines' };
     var groups = [];
     for (var i = 0; i < lines.length; i++) {

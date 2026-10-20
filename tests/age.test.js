@@ -121,3 +121,20 @@ test('ageGroups: mistakes reject the whole setting', () => {
   ];
   for (const text of bad) assert.ok(AgeCalc.parseAgeGroups(text).error, `should reject: ${text}`);
 });
+
+test('ageGroups: works however Jotform passes the textarea (spaces, <br>, <p>)', () => {
+  const expected = [
+    { name: 'ADULT', from: 18, to: Infinity },
+    { name: 'GUARDIAN', from: 16, to: 17 },
+    { name: 'TOO_YOUNG', from: 0, to: 15 },
+  ];
+  for (const text of [
+    'ADULT = 18+ GUARDIAN = 16-17 TOO_YOUNG = 0-15',
+    'ADULT = 18+<br>GUARDIAN = 16-17<br/>TOO_YOUNG = 0-15',
+    '<p>ADULT = 18+</p><p>GUARDIAN = 16-17</p><p>TOO_YOUNG&nbsp;= 0-15</p>',
+  ]) {
+    assert.deepEqual(plain(AgeCalc.parseAgeGroups(text)).groups, expected, text);
+  }
+  // still strict: junk between groups is rejected
+  assert.ok(AgeCalc.parseAgeGroups('ADULT = 18+ and more GUARDIAN = 16-17').error);
+});
