@@ -178,14 +178,14 @@ In the form builder, add your widget like any other field, label it "Date of bir
 1. Add the fields each group needs. For example, for 16–17-year-olds: **Parent or guardian full name**, **phone number** and **photo ID** (File Upload), all marked **Required**. For under-16s: a **Paragraph** such as "Sorry, you must be at least 16 to continue." Jotform doesn't check Required on hidden fields, so marking them Required is safe.
 2. Open **Settings → Conditions → Show/Hide Field** and add one condition per group:
 
-| IF | STATE | VALUE | DO | FIELD |
-| --- | --- | --- | --- | --- |
-| Date of birth | Contains | `ADULT` | Show | your adult-only fields |
-| Date of birth | Contains | `GUARDIAN` | Show Multiple | guardian name, phone and photo ID |
-| Date of birth | Contains | `TOO_YOUNG` | Show | the "too young" message |
-| Date of birth | Contains | `TOO_YOUNG` | Hide | Submit |
+| IF | STATE | TARGET | VALUE | DO | FIELD |
+| --- | --- | --- | --- | --- | --- |
+| Date of birth | Contains | Value | `ADULT` | Show | your adult-only fields |
+| Date of birth | Contains | Value | `GUARDIAN` | Show Multiple | guardian name, phone and photo ID |
+| Date of birth | Contains | Value | `TOO_YOUNG` | Show | the "too young" message |
+| Date of birth | Contains | Value | `TOO_YOUNG` | Hide | Submit |
 
-Type the value without quotes. Use the **+** next to **DO** to add the second action (Hide → Submit) to the same condition. Fields that a **Show** condition targets stay hidden until it matches.
+Type the value without quotes, in capitals. Use the **+** next to **DO** to add the second action (Hide → Submit) to the same condition. Fields that a **Show** condition targets stay hidden until it matches.
 
 - **No "Contains" for the widget?** Use **Ends With**: the group is always the last part of the saved value.
 - **Questions for both adults and 16–17-year-olds?** Leave them always visible, or use one condition that matches **any** of `ADULT` or `GUARDIAN`.
