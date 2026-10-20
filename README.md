@@ -237,7 +237,7 @@ When adding a parameter, fill in:
 | `adultAge` | Age from which someone is in the oldest group (`GROUP_A`) | Text | `18` |
 | `groupAbove` `groupBetween` `groupBelow` | Names saved for the oldest, middle and youngest group, e.g. `ADULT`, `GUARDIAN`, `TOO_YOUNG`. Use letters, numbers, `_` and `-` (2–30 characters, at least one letter). A name can't be part of another name (`TEEN` and `TEENS`) or of the words `DOB`, `Age`, `On`, `Group`, otherwise "Contains" would match the wrong people; in that case the widget uses `GROUP_A`, `GROUP_B`, `GROUP_C` instead. | Text | leave empty |
 | `ageGroups` | Any number of groups with their own ages and names, one per line, e.g. `ADULT = 18+`. Replaces the five settings above. See [Your own age groups](#your-own-age-groups). | Textarea | leave empty |
-| `dateOrder` | Order of the dropdowns: `DMY` (day, month, year), `MDY` (month first, as in the US) or `YMD` | Dropdown (options `DMY`, `MDY`, `YMD`) | `DMY` |
+| `dateOrder` | Order of the dropdowns: `DD-MM-YYYY`, `MM-DD-YYYY` (month first, as in the US) or `YYYY-MM-DD`. Short forms `DMY`, `MDY`, `YMD` and other separators (`DD/MM/YYYY`) work too. | Radio or Dropdown, one option per line | `DD-MM-YYYY` |
 | `language` | Language of the month names, as a code: `fr`, `es`, `de`, `en-CA` … | Text | leave empty (English) |
 | `labelDay` `labelMonth` `labelYear` | The dropdowns' empty-state text, e.g. `Jour` | Text | leave empty |
 | `ageText` | The line under the dropdowns; `{age}` becomes the age, e.g. `Âge : {age}` | Text | `Age: {age}` |

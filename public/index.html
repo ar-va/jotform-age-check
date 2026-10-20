@@ -78,7 +78,7 @@
   //                      GROUP_C); invalid or clashing names fall back to the defaults (see age.js)
   //   ageGroups          any number of groups, one per line: "ADULT = 18+", "TEEN = 13-17". When set
   //                      (and valid) it replaces minAge/adultAge/group*. See parseAgeGroups in age.js.
-  //   dateOrder          DMY (default), MDY or YMD
+  //   dateOrder          DMY (default), MDY or YMD, or written as DD-MM-YYYY, MM-DD-YYYY, YYYY-MM-DD
   //   language           month names, e.g. "fr" or "en-CA" (default English)
   //   labelDay, labelMonth, labelYear   dropdown placeholders
   //   ageText            line under the dropdowns, {age} is replaced (default "Age: {age}")
@@ -259,7 +259,8 @@
       sel[p[1]].setAttribute('aria-label', label);
     });
 
-    var order = get('dateOrder').toUpperCase();
+    // "DMY" or a pattern like "DD-MM-YYYY", "MM/DD/YYYY", "yyyy.mm.dd": keep the letters, one of each.
+    var order = get('dateOrder').toUpperCase().replace(/[^DMY]/g, '').replace(/(.)\1+/g, '$1');
     if (!/^(DMY|MDY|YMD)$/.test(order)) order = 'DMY';
     order.split('').forEach(function (c) { row.appendChild(sel[{ D: 'day', M: 'month', Y: 'year' }[c]]); });
   }
