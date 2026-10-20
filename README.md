@@ -241,7 +241,7 @@ When adding a parameter, fill in:
 | `language` | Language of the month names, as a code: `fr`, `es`, `de`, `en-CA` … | Text | leave empty (English) |
 | `labelDay` `labelMonth` `labelYear` | The dropdowns' empty-state text, e.g. `Jour` | Text | leave empty |
 | `ageText` | The line under the dropdowns; `{age}` becomes the age, e.g. `Âge : {age}` | Text | `Age: {age}` |
-| `showAge` | `No` hides the age line | Dropdown (options `Yes`, `No`) | `Yes` |
+| `showAge` | `Hide` hides the age line (`No`, `Off` also work); anything else shows it | Radio (options `Show`, `Hide`) | `Show` |
 | `futureDateText` | Message for a date in the future | Text | leave empty |
 | `incompleteText` | Message when the date is only partly chosen | Text | leave empty |
 | `accentColor` | Highlight around the active dropdown | Color | `#2e69ff` |
