@@ -118,7 +118,7 @@
     var unique = groups.map(function (g) { return g.name; })
       .filter(function (n, i, all) { return all.indexOf(n) === i; });
     if (groups.length && namesClash(unique.concat(NO_GROUP))) {
-      return { error: 'a name is part of another name, of ' + NO_GROUP + ', or of the words DOB, Age, Group' };
+      return { error: 'a name is part of another name, of ' + NO_GROUP + ', or of the words DOB, Age, On, Group' };
     }
     return { groups: groups };
   }

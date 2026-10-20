@@ -17,6 +17,7 @@ const COMMON_HEADERS = {
 	"Referrer-Policy": "same-origin",
 	"X-Robots-Tag": "noindex, nofollow",
 	"Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
+	"Strict-Transport-Security": "max-age=31536000",
 };
 const PAGE_CSP = `frame-ancestors ${FRAME_ANCESTORS}; object-src 'none'; base-uri 'none'; form-action 'none'`;
 const OTHER_CSP = "default-src 'none'; frame-ancestors 'none'";
@@ -60,9 +61,14 @@ async function servePage(request: Request, url: URL): Promise<Response> {
 }
 
 // The script holds no secrets, so it isn't gated; no-cache makes updates show up straight away.
+// Cross-Origin-Resource-Policy stops other sites from loading it as a script.
 async function serveScript(request: Request): Promise<Response> {
 	const res = await env.ASSETS.fetch(request);
-	return withHeaders(res, { "Content-Security-Policy": OTHER_CSP, "Cache-Control": "no-cache" });
+	return withHeaders(res, {
+		"Content-Security-Policy": OTHER_CSP,
+		"Cache-Control": "no-cache",
+		"Cross-Origin-Resource-Policy": "same-origin",
+	});
 }
 
 export default {

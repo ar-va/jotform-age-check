@@ -103,10 +103,12 @@
   var ageEl = document.getElementById('age');
   var debugEl = document.getElementById('debug');
 
-  // Outside a Jotform iframe (e.g. public/index.html opened from disk) the widget runs
-  // standalone for testing: parameters come from the URL (?language=fr&dateOrder=MDY)
-  // and the would-be submission value is shown under the dropdowns.
-  var inJotform = typeof JFCustomWidget !== 'undefined' && window.parent !== window;
+  // Opened on its own (e.g. public/index.html from disk) the widget runs standalone for testing:
+  // parameters come from the URL (?language=fr&dateOrder=MDY) and the would-be submission value is
+  // shown under the dropdowns. Inside a frame that value is never shown, even if Jotform's script
+  // failed to load.
+  var standalone = window.parent === window;
+  var inJotform = !standalone && typeof JFCustomWidget !== 'undefined';
 
   function addOption(select, value, label) {
     var opt = document.createElement('option');
@@ -193,7 +195,7 @@
     Object.keys(sel).forEach(function (k) {
       sel[k].setAttribute('aria-invalid', error && (result.state === 'future' || !sel[k].value) ? 'true' : 'false');
     });
-    if (!inJotform) {
+    if (standalone) {
       debugEl.hidden = false;
       debugEl.textContent = 'Submission value: ' + (result.value || '(empty)');
     }
@@ -213,6 +215,8 @@
     var parsed = AgeCalc.parseValue(value);
     if (!parsed) return;
     saved = { value: String(value).trim(), dob: parsed.dob, age: parsed.age, on: parsed.on };
+    // The year list moves with today's date, so a very old date of birth may need its year added back.
+    if (!sel.year.querySelector('option[value="' + parsed.dob.y + '"]')) addOption(sel.year, parsed.dob.y, parsed.dob.y);
     sel.year.value = parsed.dob.y;
     sel.month.value = parsed.dob.m;
     refreshDays();
@@ -290,13 +294,14 @@
   // Keep the form's frame as tall as the widget (wrapping on narrow screens, error lines, fonts loading)
   if (window.ResizeObserver) new ResizeObserver(resizeFrame).observe(document.querySelector('.wrap'));
 
-  if (!inJotform) {
+  if (standalone) {
     var params = {};
     new URLSearchParams(location.search).forEach(function (v, k) { params[k] = v; });
     applySettings(params);
     render(evaluate(), false);
     return;
   }
+  if (!inJotform) return;
 
   JFCustomWidget.subscribe('ready', function (formData) {
     var raw = {};

@@ -69,12 +69,12 @@ steps that need a browser or one of my accounts.
 
 1. Check that Node.js 22.18 or newer is installed (if not, tell me how to
    install it). Get the project (git clone it, or tell me to download the ZIP),
-   then run "npm install" and "npm install --global cf" in the project folder.
-2. Run "cf auth login" and wait while I sign in to Cloudflare in my browser.
+   then run "npm install" in the project folder.
+2. Run "npx cf auth login" and wait while I sign in to Cloudflare in my browser.
 3. Ask me which address the widget should use: a subdomain of a domain in my
    Cloudflare account (for example age.example.com), or "workers.dev" if I
    don't have a domain. Create .env from .env.example with WIDGET_DOMAIN set to it.
-4. Run "npm test", then deploy with "cf deploy". If it fails, use the README's
+4. Run "npm test", then deploy with "npx cf deploy". If it fails, use the README's
    Troubleshooting section to fix it.
 5. Check it works: a plain request to https://<my address>/ should get 403,
    and the same request with the header "Sec-Fetch-Dest: iframe" should get 200.
@@ -103,13 +103,11 @@ In the terminal, go into the project folder. Type `cd` followed by a space, drag
 
 ```sh
 npm install
-npm install --global cf
-cf auth login
+npx cf auth login
 ```
 
-- `npm install` downloads what the project needs. Warnings are normal.
-- `npm install --global cf` installs Cloudflare's command-line tool, `cf`.
-- `cf auth login` opens your browser so you can sign in to Cloudflare and allow access.
+- `npm install` downloads what the project needs, including Cloudflare's command-line tool, `cf`, in the exact version this project was tested with. Warnings are normal.
+- `npx cf auth login` opens your browser so you can sign in to Cloudflare and allow access. (`npx` runs the project's own copy of `cf`.)
 
 ### 3. Tell the project your address
 
@@ -137,7 +135,7 @@ Files starting with a dot are hidden on Mac; in Finder press **Cmd + Shift + .**
 ### 4. Upload the widget to Cloudflare
 
 ```sh
-cf deploy
+npx cf deploy
 ```
 
 When you see **Deploy complete**, your widget is live.
@@ -277,6 +275,8 @@ To get the date and age in separate columns, split them after exporting:
 
 **Editing a submission** reopens the widget with the saved date filled in and **keeps the age and group exactly as they were on the day it was sent**, even if the person has had a birthday since, or you've changed the age groups. If you correct the date of birth while editing, the age is worked out for the original **On** day, and the group with your current group settings.
 
+**Jotform's "Save and continue later"** works the same way: a saved draft keeps the age from the day it was saved, not the day it's finally sent. If that matters for your form, turn that feature off, or ask people to pick their date of birth again before sending.
+
 ## Troubleshooting
 
 **Opening the widget address shows "Forbidden".**
@@ -288,13 +288,13 @@ It has to be on the form first (step 6), and the form saved.
 **The conditions don't react.**
 Check the value is typed exactly like the group name (`GROUP_A`, `GROUP_B`, `GROUP_C`, or your own names), with no quotes. Send a test submission and look at the saved value: if a custom name you set isn't accepted, the widget saves the default name instead. If **Contains** doesn't work, try **Ends With**.
 
-**The upload (`cf deploy`) fails.**
+**The upload (`npx cf deploy`) fails.**
 Read the message:
 
 - "WIDGET_DOMAIN is not set": create the `.env` file from step 3.
 - "workers.dev subdomain": set your own domain in `.env` (step 3), or pick a `workers.dev` subdomain in the Cloudflare dashboard.
 - Anything about the domain: check it's spelled correctly and that the domain is in your Cloudflare account.
-- Not signed in: run `cf auth login` again.
+- Not signed in: run `npx cf auth login` again.
 
 **The widget looks cut off or too tall in the form.**
 It resizes itself. If it doesn't, check that the widget's URL in Jotform is exactly your widget address.
@@ -304,7 +304,8 @@ It resizes itself. If it doesn't, check that the widget's URL in Jotform is exac
 After changing any file (including downloading a newer version of this project), upload again from the project folder:
 
 ```sh
-cf deploy
+npm install      # only needed if package.json changed
+npx cf deploy
 ```
 
 <details>
@@ -321,7 +322,8 @@ If you keep your copy of the project on GitHub, Cloudflare can redeploy whenever
 
 ## Security and privacy
 
-- **The age is worked out in the visitor's browser**, from their device's date. Nothing is sent anywhere except to your form. Someone who sets their device clock wrong, or simply enters a false date, gets a wrong age: **always check photo ID in person** where the law requires it.
+- **The age is worked out in the visitor's browser**, from their device's date. The date of birth only goes into your form submission; your Cloudflare server never receives it. Cloudflare does keep short-lived request logs (IP address, browser, which form page loaded the widget) that you can use for troubleshooting.
+- **The widget can't prove anyone's age.** Someone who enters a false date, sets their device clock wrong, or tampers with the page in their browser gets a wrong age and group: **always check photo ID in person** where the law requires it.
 - **The widget only runs inside Jotform forms.** Opening it directly, or embedding it on another website, is blocked.
 - **Only valid dates are saved.** The dropdowns allow real dates from the last 110 years; dates in the future are rejected.
 
@@ -329,8 +331,9 @@ If you keep your copy of the project on GitHub, Cloudflare can redeploy whenever
 <summary><strong>Details for technical readers</strong></summary>
 
 - **Widget page:** served only for `Sec-Fetch-Dest: iframe` (with a `jotform.com` Referer fallback for older browsers) and a CSP `frame-ancestors` restricted to `jotform.com`. Direct visits get 403; only GET/HEAD is allowed (405 otherwise); other paths get 404. It also sends `nosniff`, `Referrer-Policy: same-origin`, a Permissions-Policy, and a CSP blocking plugins, `<base>` and form posts. Script sources aren't restricted, because Jotform's widget library loads its own theme scripts and fonts at runtime.
-- **`/age.js`** is served without the iframe check (it has no secrets) and with `nosniff`.
+- **`/age.js`** is served without the iframe check (it has no secrets), with `nosniff` and `Cross-Origin-Resource-Policy: same-origin`, so other sites can't load it. All responses send `Strict-Transport-Security`.
 - **Output:** all text is inserted with `textContent`, never as HTML. The saved value starts with `DOB:`, so it can't be read as a spreadsheet formula.
+- **Trust:** everything runs in the visitor's browser, so a submission's value is ordinary, unverified form input.
 - **Validation:** an empty widget is valid (Jotform's Required setting decides whether an answer is needed); a partly chosen or future date is invalid and blocks submission with a message.
 
 </details>
@@ -360,8 +363,8 @@ Commands:
 
 ```sh
 npm test               # unit tests
-npx tsc --noEmit       # type-check the Worker
-cf dev                 # local server (the page still needs Sec-Fetch-Dest: iframe)
+npm run typecheck      # type-check the Worker (generates Cloudflare's types first)
+npx cf dev             # local server (the page still needs Sec-Fetch-Dest: iframe)
 ```
 
 To try the widget on its own, open `public/index.html` straight from disk in a browser. Outside Jotform it shows the value it would save, and takes settings from the URL, e.g. `index.html?dateOrder=MDY&language=fr`.
