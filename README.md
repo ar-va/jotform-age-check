@@ -16,6 +16,7 @@ You host it yourself, for free, on Cloudflare. Everything runs in the visitor's 
 - [Set it up with an AI assistant](#set-it-up-with-an-ai-assistant)
 - [Setup, step by step](#setup-step-by-step)
 - [Show different questions by age](#show-different-questions-by-age)
+- [Your own age groups](#your-own-age-groups)
 - [Customise the look and wording](#customise-the-look-and-wording)
 - [What gets saved](#what-gets-saved)
 - [Troubleshooting](#troubleshooting)
@@ -35,7 +36,7 @@ You host it yourself, for free, on Cloudflare. Everything runs in the visitor's 
   | 16–17 | `GROUP_B` |
   | under 16 | `GROUP_C` |
 
-  The ages (16 and 18) and the group names can be changed in the widget settings, for example to `ADULT`, `GUARDIAN` and `TOO_YOUNG`.
+  The ages (16 and 18) and the group names can be changed in the widget settings, for example to `ADULT`, `GUARDIAN` and `TOO_YOUNG`. Need a different number of groups? See [Your own age groups](#your-own-age-groups).
 - **Updates as they type.** The form's conditions react as soon as a full date is chosen, before the form is sent.
 - **Saves the date and the age together.** Each submission stores one line like `DOB: 2009-05-12 | Age: 17 | Group: GROUP_B`.
 - **Matches your form.** Colours, font, sizes, wording, month language and date order (Day/Month/Year or Month/Day/Year) are set in Jotform, with no code changes.
@@ -192,6 +193,33 @@ Type the value exactly as the group name, without quotes. If you renamed the gro
 
 3. **Test in Preview** with dates exactly 18 years ago today, 18 years ago tomorrow, exactly 16 years ago, someone aged 15, and a 29 February birthday.
 
+## Your own age groups
+
+Need more (or fewer) than three groups, or different ages? Add the `ageGroups` setting (Field Type **Textarea**, see [Customise](#customise-the-look-and-wording)) and write one group per line, as **name = ages**:
+
+```text
+ADULT = 18+
+GUARDIAN = 16-17
+TOO_YOUNG = 0-15
+```
+
+- **Ages:** `18+` (18 and over), `16-17` (16 to 17, both included) or a single age like `16`.
+- **Names:** letters, numbers, `_` and `-`, 2–30 characters, with at least one letter. Use the same names in your conditions.
+- **As many groups as you need**, up to 20 lines. The same name can be used on more than one line, for example `DISCOUNT = 0-12` and `DISCOUNT = 65+`.
+- **Ages that no line covers** are saved as `NO_GROUP`, so you can use that in a condition too.
+- `:` works instead of `=`. If Jotform puts everything on one line, separate the groups with `;`.
+
+When `ageGroups` is filled in, it replaces `minAge`, `adultAge`, `groupAbove`, `groupBetween` and `groupBelow`.
+
+**If something in it is wrong, the widget ignores the whole setting** and uses those simpler settings (or `GROUP_A`, `GROUP_B`, `GROUP_C`) instead, rather than guessing. It's ignored when:
+
+- a line can't be read (for example a space in a name, or a missing `=`)
+- two ranges overlap (`ADULT = 18+` and `OLDER = 30+`)
+- a range is backwards (`17-13`)
+- one name is part of another (`TEEN` and `TEENS`), or of the words `DOB`, `Age`, `Group` or `NO_GROUP`. Otherwise "Contains" would match the wrong people.
+
+After changing it, send a test submission and check the saved group. The browser console (right-click → Inspect → Console) shows the reason when the setting is ignored.
+
 ## Customise the look and wording
 
 Each setting below is a **User Parameter** you add to your widget in Jotform (**My Form Widgets** → your widget → **Add Parameter**, see step 5). Once added, you change its value per form in the widget's **Settings → General** tab. Every one is optional: anything you don't add, or leave empty, keeps the default.
@@ -208,6 +236,7 @@ When adding a parameter, fill in:
 | `minAge` | Youngest age of the middle group (`GROUP_B` from this age) | Text | `16` |
 | `adultAge` | Age from which someone is in the oldest group (`GROUP_A`) | Text | `18` |
 | `groupAbove` `groupBetween` `groupBelow` | Names saved for the oldest, middle and youngest group, e.g. `ADULT`, `GUARDIAN`, `TOO_YOUNG`. Use letters, numbers, `_` and `-` (2–30 characters, at least one letter). A name can't be part of another name (`TEEN` and `TEENS`) or of the words `DOB`, `Age`, `Group`, otherwise "Contains" would match the wrong people; in that case the widget uses `GROUP_A`, `GROUP_B`, `GROUP_C` instead. | Text | leave empty |
+| `ageGroups` | Any number of groups with their own ages and names, one per line, e.g. `ADULT = 18+`. Replaces the five settings above. See [Your own age groups](#your-own-age-groups). | Textarea | leave empty |
 | `dateOrder` | Order of the dropdowns: `DMY` (day, month, year), `MDY` (month first, as in the US) or `YMD` | Dropdown (options `DMY`, `MDY`, `YMD`) | `DMY` |
 | `language` | Language of the month names, as a code: `fr`, `es`, `de`, `en-CA` … | Text | leave empty (English) |
 | `labelDay` `labelMonth` `labelYear` | The dropdowns' empty-state text, e.g. `Jour` | Text | leave empty |

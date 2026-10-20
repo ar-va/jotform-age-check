@@ -76,6 +76,8 @@
   //   minAge, adultAge   age groups (defaults 16 and 18)
   //   groupAbove, groupBetween, groupBelow   group names saved in the value (defaults GROUP_A, GROUP_B,
   //                      GROUP_C); invalid or clashing names fall back to the defaults (see age.js)
+  //   ageGroups          any number of groups, one per line: "ADULT = 18+", "TEEN = 13-17". When set
+  //                      (and valid) it replaces minAge/adultAge/group*. See parseAgeGroups in age.js.
   //   dateOrder          DMY (default), MDY or YMD
   //   language           month names, e.g. "fr" or "en-CA" (default English)
   //   labelDay, labelMonth, labelYear   dropdown placeholders
@@ -157,7 +159,9 @@
     if (count < 3 || !AgeCalc.isValidDate(dob)) return { state: 'partial', value: '' };
     var age = AgeCalc.calculateAge(dob, AgeCalc.today());
     if (age < 0) return { state: 'future', value: '' };
-    var group = AgeCalc.ageGroup(age, settings.minAge, settings.adultAge, settings.groups);
+    var group = settings.ranges
+      ? AgeCalc.groupFor(age, settings.ranges)
+      : AgeCalc.ageGroup(age, settings.minAge, settings.adultAge, settings.groups);
     return { state: 'ok', value: AgeCalc.formatValue(dob, age, group), age: age };
   }
 
@@ -228,6 +232,9 @@
         console.warn('Age Check widget: group name "' + wanted[k] + '" can’t be used; saving "' + settings.groups[k] + '" instead.');
       }
     });
+    var custom = AgeCalc.parseAgeGroups(get('ageGroups'));
+    if (custom.error && window.console) console.warn('Age Check widget: ageGroups setting ignored: ' + custom.error + '.');
+    settings.ranges = custom.groups && custom.groups.length ? custom.groups : null;
     Object.keys(text).forEach(function (k) { if (get(k)) text[k] = get(k); });
 
     var language = get('language');

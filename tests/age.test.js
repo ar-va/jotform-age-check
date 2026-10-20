@@ -75,3 +75,49 @@ test('isValidDate rejects impossible dates', () => {
   assert.equal(AgeCalc.isValidDate(d(2024, 4, 31)), false);
   assert.equal(AgeCalc.parseDob('2023-02-30'), null);
 });
+
+// Copy results out of the vm sandbox (other realm) so deepEqual compares plain objects and arrays.
+const plain = (r) => r.groups ? { groups: Array.from(r.groups, (g) => ({ ...g })) } : { ...r };
+
+test('ageGroups: one group per line with open, closed and single-age ranges', () => {
+  const { groups } = plain(AgeCalc.parseAgeGroups('ADULT = 18+\r\nTEEN : 13 - 17\nKID = 0-12'));
+  assert.deepEqual(groups, [
+    { name: 'ADULT', from: 18, to: Infinity },
+    { name: 'TEEN', from: 13, to: 17 },
+    { name: 'KID', from: 0, to: 12 },
+  ]);
+  assert.equal(AgeCalc.groupFor(17, groups), 'TEEN');
+  assert.equal(AgeCalc.groupFor(18, groups), 'ADULT');
+  assert.equal(AgeCalc.groupFor(0, groups), 'KID');
+  assert.equal(AgeCalc.groupFor(99, groups), 'ADULT');
+});
+
+test('ageGroups: ";" or "," separators, single ages, a name reused, gaps get NO_GROUP', () => {
+  const { groups } = plain(AgeCalc.parseAgeGroups('SENIOR = 65+; WORKING = 18-64, CHILD = 0-12; CHILD = 16'));
+  assert.equal(groups.length, 4);
+  assert.equal(AgeCalc.groupFor(16, groups), 'CHILD');
+  assert.equal(AgeCalc.groupFor(14, groups), AgeCalc.NO_GROUP);
+  assert.equal(AgeCalc.groupFor(70, groups), 'SENIOR');
+});
+
+test('ageGroups: blank means not used', () => {
+  assert.deepEqual(plain(AgeCalc.parseAgeGroups('')), { groups: [] });
+  assert.deepEqual(plain(AgeCalc.parseAgeGroups(' \n ')), { groups: [] });
+  assert.deepEqual(plain(AgeCalc.parseAgeGroups(undefined)), { groups: [] });
+});
+
+test('ageGroups: mistakes reject the whole setting', () => {
+  const bad = [
+    'ADULT 18+',                      // no = or :
+    'ADULT = eighteen',               // not a number
+    'OVER 18 = 18+',                  // space in the name
+    '18 = 18+',                       // no letter in the name
+    'TEEN = 17-13',                   // backwards range
+    'ADULT = 18+\nOLDER = 30+',       // overlap
+    'TEEN = 13-17\nTEENS = 18+',      // one name inside another
+    'AGE = 18+',                      // part of the fixed text
+    'NO = 0-17',                      // part of NO_GROUP
+    Array.from({ length: 21 }, (_, i) => `G${'X'.repeat(i + 1)} = ${i}`).join('\n'), // too many lines
+  ];
+  for (const text of bad) assert.ok(AgeCalc.parseAgeGroups(text).error, `should reject: ${text}`);
+});

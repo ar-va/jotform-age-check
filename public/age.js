@@ -57,13 +57,62 @@
     var names = {};
     Object.keys(DEFAULT_GROUPS).forEach(function (k) {
       var n = String((custom && custom[k]) || '').trim();
-      names[k] = GROUP_NAME_RE.test(n) && /[A-Za-z]/.test(n) ? n : DEFAULT_GROUPS[k];
+      names[k] = isGroupName(n) ? n : DEFAULT_GROUPS[k];
     });
-    var lower = Object.keys(names).map(function (k) { return names[k].toLowerCase(); });
-    var clash = lower.some(function (a, i) {
+    return namesClash(Object.keys(names).map(function (k) { return names[k]; }))
+      ? Object.assign({}, DEFAULT_GROUPS) : names;
+  }
+
+  function isGroupName(n) {
+    return GROUP_NAME_RE.test(n) && /[A-Za-z]/.test(n);
+  }
+
+  // True if any name (ignoring case) is part of the fixed text or of another name in the list.
+  function namesClash(names) {
+    var lower = names.map(function (n) { return n.toLowerCase(); });
+    return lower.some(function (a, i) {
       return FIXED_TEXT.indexOf(a) !== -1 || lower.some(function (b, j) { return i !== j && b.indexOf(a) !== -1; });
     });
-    return clash ? Object.assign({}, DEFAULT_GROUPS) : names;
+  }
+
+  /* ---------- Any number of groups (the ageGroups parameter) ---------- */
+
+  // Saved for an age that no line covers (a gap between the ranges).
+  var NO_GROUP = 'NO_GROUP';
+  var MAX_GROUPS = 20;
+  var LINE_RE = /^([A-Za-z0-9_-]+)\s*[=:]\s*(\d{1,3})\s*(?:(\+)|-\s*(\d{1,3}))?$/;
+
+  // One group per line, "NAME = RANGE" (":" also works). RANGE is "18+", "16-17" or a single age "16".
+  // Lines can also be separated with ";" or ",". The same name may appear on several lines.
+  // Returns { groups: [{ name, from, to }] } (empty when the text is blank) or { error: "reason" };
+  // on error the widget ignores the whole setting rather than guess.
+  function parseAgeGroups(text) {
+    var lines = String(text || '').split(/[\r\n;,]+/).map(function (l) { return l.trim(); }).filter(Boolean);
+    if (lines.length > MAX_GROUPS) return { error: 'more than ' + MAX_GROUPS + ' lines' };
+    var groups = [];
+    for (var i = 0; i < lines.length; i++) {
+      var m = LINE_RE.exec(lines[i]);
+      if (!m) return { error: 'can’t read "' + lines[i] + '" (write it like ADULT = 18+ or TEEN = 13-17)' };
+      var from = +m[2], to = m[3] ? Infinity : m[4] != null ? +m[4] : from;
+      if (!isGroupName(m[1])) return { error: '"' + m[1] + '" isn’t a valid name (2–30 letters, numbers, _ or -, with a letter)' };
+      if (from > to) return { error: 'in "' + lines[i] + '" the first age is bigger than the second' };
+      var overlap = groups.filter(function (g) { return from <= g.to && g.from <= to; })[0];
+      if (overlap) return { error: '"' + lines[i] + '" overlaps with ' + overlap.name };
+      groups.push({ name: m[1], from: from, to: to });
+    }
+    var unique = groups.map(function (g) { return g.name; })
+      .filter(function (n, i, all) { return all.indexOf(n) === i; });
+    if (groups.length && namesClash(unique.concat(NO_GROUP))) {
+      return { error: 'a name is part of another name, of ' + NO_GROUP + ', or of the words DOB, Age, Group' };
+    }
+    return { groups: groups };
+  }
+
+  function groupFor(age, groups) {
+    for (var i = 0; i < groups.length; i++) {
+      if (age >= groups[i].from && age <= groups[i].to) return groups[i].name;
+    }
+    return NO_GROUP;
   }
 
   // Value stored in the Jotform submission, e.g. "DOB: 1990-05-12 | Age: 36 | Group: GROUP_A".
@@ -82,6 +131,9 @@
   root.AgeCalc = {
     DEFAULT_GROUPS: DEFAULT_GROUPS,
     groupNames: groupNames,
+    NO_GROUP: NO_GROUP,
+    parseAgeGroups: parseAgeGroups,
+    groupFor: groupFor,
     toIsoDate: toIsoDate,
     daysInMonth: daysInMonth,
     isValidDate: isValidDate,
