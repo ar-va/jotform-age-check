@@ -74,6 +74,8 @@
   var PARAM_CHECK = { fontFamily: 'font-family', fontSize: 'width', fieldHeight: 'width', cornerRadius: 'width' };
   // Other parameters:
   //   minAge, adultAge   age groups (defaults 16 and 18)
+  //   groupAbove, groupBetween, groupBelow   group names saved in the value (defaults GROUP_A, GROUP_B,
+  //                      GROUP_C); invalid or clashing names fall back to the defaults (see age.js)
   //   dateOrder          DMY (default), MDY or YMD
   //   language           month names, e.g. "fr" or "en-CA" (default English)
   //   labelDay, labelMonth, labelYear   dropdown placeholders
@@ -88,7 +90,7 @@
     futureDateText: 'Date of birth can’t be in the future.',
     incompleteText: 'Please choose a day, month and year.'
   };
-  var settings = { minAge: 16, adultAge: 18, showAge: true };
+  var settings = { minAge: 16, adultAge: 18, showAge: true, groups: AgeCalc.groupNames() };
 
   var row = document.getElementById('row');
   var sel = { day: document.getElementById('day'), month: document.getElementById('month'), year: document.getElementById('year') };
@@ -155,7 +157,7 @@
     if (count < 3 || !AgeCalc.isValidDate(dob)) return { state: 'partial', value: '' };
     var age = AgeCalc.calculateAge(dob, AgeCalc.today());
     if (age < 0) return { state: 'future', value: '' };
-    var group = AgeCalc.ageGroup(age, settings.minAge, settings.adultAge);
+    var group = AgeCalc.ageGroup(age, settings.minAge, settings.adultAge, settings.groups);
     return { state: 'ok', value: AgeCalc.formatValue(dob, age, group), age: age };
   }
 
@@ -219,6 +221,13 @@
     settings.adultAge = int('adultAge', settings.adultAge);
     settings.minAge = Math.min(int('minAge', settings.minAge), settings.adultAge);
     settings.showAge = !/^(no|false|0|hide|off)$/i.test(get('showAge'));
+    var wanted = { above: get('groupAbove'), between: get('groupBetween'), below: get('groupBelow') };
+    settings.groups = AgeCalc.groupNames(wanted);
+    Object.keys(wanted).forEach(function (k) {
+      if (wanted[k] && wanted[k] !== settings.groups[k] && window.console) {
+        console.warn('Age Check widget: group name "' + wanted[k] + '" can’t be used; saving "' + settings.groups[k] + '" instead.');
+      }
+    });
     Object.keys(text).forEach(function (k) { if (get(k)) text[k] = get(k); });
 
     var language = get('language');

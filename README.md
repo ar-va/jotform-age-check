@@ -29,15 +29,15 @@ You host it yourself, for free, on Cloudflare. Everything runs in the visitor's 
 - **Exact age on the day of submission.** It compares years, months and days like a person would, so someone turns 18 on their 18th birthday, not a day early or late. The age is checked again at the moment the form is sent.
 - **Three age groups for your form's conditions:**
 
-  | Age | Group |
+  | Age | Group (default name) |
   | --- | --- |
-  | 18 and over | `ADULT` |
-  | 16–17 | `GUARDIAN` |
-  | under 16 | `TOO_YOUNG` |
+  | 18 and over | `GROUP_A` |
+  | 16–17 | `GROUP_B` |
+  | under 16 | `GROUP_C` |
 
-  Both ages (16 and 18) can be changed in the widget settings.
+  The ages (16 and 18) and the group names can be changed in the widget settings, for example to `ADULT`, `GUARDIAN` and `TOO_YOUNG`.
 - **Updates as they type.** The form's conditions react as soon as a full date is chosen, before the form is sent.
-- **Saves the date and the age together.** Each submission stores one line like `DOB: 2009-05-12 | Age: 17 | Group: GUARDIAN`.
+- **Saves the date and the age together.** Each submission stores one line like `DOB: 2009-05-12 | Age: 17 | Group: GROUP_B`.
 - **Matches your form.** Colours, font, sizes, wording, month language and date order (Day/Month/Year or Month/Day/Year) are set in Jotform, with no code changes.
 
 ## Why not Jotform's Form Calculation?
@@ -180,15 +180,15 @@ In the form builder, add your widget like any other field, label it "Date of bir
 
 | IF | STATE | TARGET | VALUE | DO | FIELD |
 | --- | --- | --- | --- | --- | --- |
-| Date of birth | Contains | Value | `ADULT` | Show | your adult-only fields |
-| Date of birth | Contains | Value | `GUARDIAN` | Show Multiple | guardian name, phone and photo ID |
-| Date of birth | Contains | Value | `TOO_YOUNG` | Show | the "too young" message |
-| Date of birth | Contains | Value | `TOO_YOUNG` | Hide | Submit |
+| Date of birth | Contains | Value | `GROUP_A` | Show | your adult-only fields |
+| Date of birth | Contains | Value | `GROUP_B` | Show Multiple | guardian name, phone and photo ID |
+| Date of birth | Contains | Value | `GROUP_C` | Show | the "too young" message |
+| Date of birth | Contains | Value | `GROUP_C` | Hide | Submit |
 
-Type the value without quotes, in capitals. Use the **+** next to **DO** to add the second action (Hide → Submit) to the same condition. Fields that a **Show** condition targets stay hidden until it matches.
+Type the value exactly as the group name, without quotes. If you renamed the groups (see [Customise](#customise-the-look-and-wording)), use your names. Use the **+** next to **DO** to add the second action (Hide → Submit) to the same condition. Fields that a **Show** condition targets stay hidden until it matches.
 
 - **No "Contains" for the widget?** Use **Ends With**: the group is always the last part of the saved value.
-- **Questions for both adults and 16–17-year-olds?** Leave them always visible, or use one condition that matches **any** of `ADULT` or `GUARDIAN`.
+- **Questions for both adults and 16–17-year-olds?** Leave them always visible, or use one condition that matches **any** of `GROUP_A` or `GROUP_B`.
 
 3. **Test in Preview** with dates exactly 18 years ago today, 18 years ago tomorrow, exactly 16 years ago, someone aged 15, and a 29 February birthday.
 
@@ -205,8 +205,9 @@ When adding a parameter, fill in:
 
 | Name | What it changes | Field Type | Default Value |
 | --- | --- | --- | --- |
-| `minAge` | Youngest age allowed with a guardian (`GUARDIAN` from this age) | Text | `16` |
-| `adultAge` | Age from which someone counts as `ADULT` | Text | `18` |
+| `minAge` | Youngest age of the middle group (`GROUP_B` from this age) | Text | `16` |
+| `adultAge` | Age from which someone is in the oldest group (`GROUP_A`) | Text | `18` |
+| `groupAbove` `groupBetween` `groupBelow` | Names saved for the oldest, middle and youngest group, e.g. `ADULT`, `GUARDIAN`, `TOO_YOUNG`. Use letters, numbers, `_` and `-` (2–30 characters, at least one letter). A name can't be part of another name (`TEEN` and `TEENS`) or of the words `DOB`, `Age`, `Group`, otherwise "Contains" would match the wrong people; in that case the widget uses `GROUP_A`, `GROUP_B`, `GROUP_C` instead. | Text | leave empty |
 | `dateOrder` | Order of the dropdowns: `DMY` (day, month, year), `MDY` (month first, as in the US) or `YMD` | Dropdown (options `DMY`, `MDY`, `YMD`) | `DMY` |
 | `language` | Language of the month names, as a code: `fr`, `es`, `de`, `en-CA` … | Text | leave empty (English) |
 | `labelDay` `labelMonth` `labelYear` | The dropdowns' empty-state text, e.g. `Jour` | Text | leave empty |
@@ -235,7 +236,7 @@ Tips:
 
 Each submission has one column for the widget, holding the date of birth (always year-month-day), the age on the day it was sent, and the group:
 
-`DOB: 2009-05-12 | Age: 17 | Group: GUARDIAN`
+`DOB: 2009-05-12 | Age: 17 | Group: GROUP_B`
 
 To get the date and age in separate columns, split them after exporting:
 
@@ -253,7 +254,7 @@ That's normal. The widget only loads inside a Jotform form. Test it through your
 It has to be on the form first (step 6), and the form saved.
 
 **The conditions don't react.**
-Check the value is typed exactly (`ADULT`, `GUARDIAN`, `TOO_YOUNG`, capital letters, no quotes). If **Contains** doesn't work, try **Ends With**.
+Check the value is typed exactly like the group name (`GROUP_A`, `GROUP_B`, `GROUP_C`, or your own names), with no quotes. Send a test submission and look at the saved value: if a custom name you set isn't accepted, the widget saves the default name instead. If **Contains** doesn't work, try **Ends With**.
 
 **The upload (`cf deploy`) fails.**
 Read the message:
