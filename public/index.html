@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Age Check</title>
+<!-- Jotform Custom Widget API -->
+<script src="https://js.jotform.com/JotFormCustomWidget.min.js"></script>
+<script src="age.js"></script>
+<style>
+  /* Defaults. Each one can be overridden by a Jotform widget parameter (see STYLE_PARAMS). */
+  :root {
+    --focus: #2e69ff;
+    --text: #2c3345;
+    --muted: #6c7389;
+    --border: #c3cad8;
+    --bg: #ffffff;
+    --error: #c6252b;
+    --font: Inter, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    --font-size: 15px;
+    --field-height: 40px;
+    --radius: 4px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: transparent; font-family: var(--font); color: var(--text); }
+  .wrap { padding: 2px; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; }
+  select {
+    flex: 1 1 90px; min-width: 0; height: var(--field-height); padding: 0 10px;
+    font-family: inherit; font-size: var(--font-size); color: var(--text);
+    background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); outline: none;
+  }
+  select:focus { border-color: var(--focus); box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus) 15%, transparent); }
+  select[aria-invalid="true"] { border-color: var(--error); }
+  .age { margin-top: 6px; min-height: 1.4em; font-size: calc(var(--font-size) - 1px); color: var(--muted); }
+  .age.error { color: var(--error); }
+  .debug { margin-top: 8px; font: 12px ui-monospace, Menlo, monospace; color: #888; }
+</style>
+<style id="custom-css"></style>
+</head>
+<body>
+<div class="wrap">
+  <div class="row" id="row">
+    <select id="day"><option value="">Day</option></select>
+    <select id="month"><option value="">Month</option></select>
+    <select id="year"><option value="">Year</option></select>
+  </div>
+  <div id="age" class="age" aria-live="polite"></div>
+  <div id="debug" class="debug" hidden></div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* =========================================================================
+     JOTFORM WIDGET PARAMETERS (all optional; blank keeps the default)
+     Sizes accept a plain number (treated as px) or any CSS length.
+     ========================================================================= */
+  var STYLE_PARAMS = {
+    accentColor:     '--focus',        // focus outline
+    textColor:       '--text',         // dropdown text
+    labelColor:      '--muted',        // the age line under the dropdowns
+    borderColor:     '--border',
+    fieldBackground: '--bg',
+    errorColor:      '--error',
+    fontFamily:      '--font',
+    fontSize:        '--font-size',
+    fieldHeight:     '--field-height',
+    cornerRadius:    '--radius'
+  };
+  var SIZE_PARAMS = { fontSize: true, fieldHeight: true, cornerRadius: true };
+  // Values are checked against this CSS property; anything invalid keeps the default.
+  var PARAM_CHECK = { fontFamily: 'font-family', fontSize: 'width', fieldHeight: 'width', cornerRadius: 'width' };
+  // Other parameters:
+  //   minAge, adultAge   age groups (defaults 16 and 18)
+  //   dateOrder          DMY (default), MDY or YMD
+  //   language           month names, e.g. "fr" or "en-CA" (default English)
+  //   labelDay, labelMonth, labelYear   dropdown placeholders
+  //   ageText            line under the dropdowns, {age} is replaced (default "Age: {age}")
+  //   showAge            "No" hides the age line
+  //   futureDateText, incompleteText    error messages
+  //   customCSS
+
+  var MAX_AGE = 110;
+  var text = {
+    ageText: 'Age: {age}',
+    futureDateText: 'Date of birth can’t be in the future.',
+    incompleteText: 'Please choose a day, month and year.'
+  };
+  var settings = { minAge: 16, adultAge: 18, showAge: true };
+
+  var row = document.getElementById('row');
+  var sel = { day: document.getElementById('day'), month: document.getElementById('month'), year: document.getElementById('year') };
+  var ageEl = document.getElementById('age');
+  var debugEl = document.getElementById('debug');
+
+  // Outside a Jotform iframe (e.g. public/index.html opened from disk) the widget runs
+  // standalone for testing: parameters come from the URL (?language=fr&dateOrder=MDY)
+  // and the would-be submission value is shown under the dropdowns.
+  var inJotform = typeof JFCustomWidget !== 'undefined' && window.parent !== window;
+
+  function addOption(select, value, label) {
+    var opt = document.createElement('option');
+    opt.value = value;
+    opt.textContent = label;
+    select.appendChild(opt);
+  }
+
+  function monthNames(language) {
+    try {
+      var fmt = new Intl.DateTimeFormat(language || 'en', { month: 'long', timeZone: 'UTC' });
+      return Array.from({ length: 12 }, function (_, i) { return fmt.format(Date.UTC(2000, i, 1)); });
+    } catch (e) {
+      return monthNames('en');   // unknown language code
+    }
+  }
+
+  function fillMonths(language) {
+    var chosen = sel.month.value;
+    sel.month.length = 1;
+    monthNames(language).forEach(function (name, i) {
+      // Some languages return lower-case month names
+      addOption(sel.month, i + 1, name.charAt(0).toLocaleUpperCase(language || 'en') + name.slice(1));
+    });
+    sel.month.value = chosen;
+  }
+
+  function fillYears() {
+    var thisYear = AgeCalc.today().y;
+    for (var y = thisYear; y >= thisYear - MAX_AGE; y--) addOption(sel.year, y, y);
+  }
+
+  // Rebuild day options for the chosen month/year; clears an impossible day (e.g. Feb 30).
+  function refreshDays() {
+    var y = +sel.year.value || 2000;   // leap year, so Feb 29 stays selectable until a year is chosen
+    var m = +sel.month.value || 1;
+    var max = AgeCalc.daysInMonth(y, m);
+    var chosen = +sel.day.value;
+    sel.day.length = 1;
+    for (var d = 1; d <= max; d++) addOption(sel.day, d, d);
+    sel.day.value = chosen && chosen <= max ? chosen : '';
+  }
+
+  function picked() {
+    return { y: +sel.year.value, m: +sel.month.value, d: +sel.day.value };
+  }
+
+  // Recomputed on every call, so the age is relative to the moment of submission.
+  // state: "empty" (nothing chosen), "partial", "future" or "ok".
+  function evaluate() {
+    var dob = picked();
+    var count = (dob.y ? 1 : 0) + (dob.m ? 1 : 0) + (dob.d ? 1 : 0);
+    if (count === 0) return { state: 'empty', value: '' };
+    if (count < 3 || !AgeCalc.isValidDate(dob)) return { state: 'partial', value: '' };
+    var age = AgeCalc.calculateAge(dob, AgeCalc.today());
+    if (age < 0) return { state: 'future', value: '' };
+    var group = AgeCalc.ageGroup(age, settings.minAge, settings.adultAge);
+    return { state: 'ok', value: AgeCalc.formatValue(dob, age, group), age: age };
+  }
+
+  function render(result, submitting) {
+    var message = '';
+    var error = result.state === 'future' || (submitting && result.state === 'partial');
+    if (result.state === 'future') message = text.futureDateText;
+    else if (error) message = text.incompleteText;
+    else if (result.state === 'ok' && settings.showAge) message = text.ageText.replace('{age}', result.age);
+    ageEl.textContent = message;
+    ageEl.classList.toggle('error', error);
+    Object.keys(sel).forEach(function (k) {
+      sel[k].setAttribute('aria-invalid', error && (result.state === 'future' || !sel[k].value) ? 'true' : 'false');
+    });
+    if (!inJotform) {
+      debugEl.hidden = false;
+      debugEl.textContent = 'Submission value: ' + (result.value || '(empty)');
+    }
+  }
+
+  function onChange() {
+    refreshDays();
+    var result = evaluate();
+    render(result, false);
+    // Send the value straight away so Jotform conditions update while the person fills the form.
+    if (inJotform) JFCustomWidget.sendData({ value: result.value });
+  }
+
+  // Refill the dropdowns from a saved value (e.g. editing a submission).
+  function restore(value) {
+    var dob = AgeCalc.parseDob(value);
+    if (!dob) return;
+    sel.year.value = dob.y;
+    sel.month.value = dob.m;
+    refreshDays();
+    sel.day.value = dob.d;
+  }
+
+  function applySettings(raw) {
+    // Jotform shows unset parameters as "undefined" and may pass that text on
+    function get(name) {
+      var v = raw[name];
+      v = v == null ? '' : String(v).trim();
+      return /^(undefined|null)$/i.test(v) ? '' : v;
+    }
+    function int(name, fallback) {
+      var n = parseInt(get(name), 10);
+      return isNaN(n) || n < 0 ? fallback : n;
+    }
+
+    var root = document.documentElement.style;
+    Object.keys(STYLE_PARAMS).forEach(function (name) {
+      var v = get(name);
+      if (!v) return;
+      if (SIZE_PARAMS[name] && /^\d+(\.\d+)?$/.test(v)) v += 'px';
+      if (window.CSS && CSS.supports && !CSS.supports(PARAM_CHECK[name] || 'color', v)) return;
+      root.setProperty(STYLE_PARAMS[name], v);
+    });
+    document.getElementById('custom-css').textContent = get('customCSS');
+
+    settings.adultAge = int('adultAge', settings.adultAge);
+    settings.minAge = Math.min(int('minAge', settings.minAge), settings.adultAge);
+    settings.showAge = !/^(no|false|0|hide|off)$/i.test(get('showAge'));
+    Object.keys(text).forEach(function (k) { if (get(k)) text[k] = get(k); });
+
+    var language = get('language');
+    if (language) {
+      try { document.documentElement.lang = Intl.getCanonicalLocales(language)[0]; } catch (e) { language = ''; }
+    }
+    fillMonths(language);
+
+    [['labelDay', 'day', 'Day'], ['labelMonth', 'month', 'Month'], ['labelYear', 'year', 'Year']].forEach(function (p) {
+      var label = get(p[0]) || p[2];
+      sel[p[1]].options[0].textContent = label;
+      sel[p[1]].setAttribute('aria-label', label);
+    });
+
+    var order = get('dateOrder').toUpperCase();
+    if (!/^(DMY|MDY|YMD)$/.test(order)) order = 'DMY';
+    order.split('').forEach(function (c) { row.appendChild(sel[{ D: 'day', M: 'month', Y: 'year' }[c]]); });
+  }
+
+  function resizeFrame() {
+    if (!inJotform) return;
+    var h = Math.ceil(document.querySelector('.wrap').getBoundingClientRect().height) + 4;
+    JFCustomWidget.requestFrameResize({ height: h });
+  }
+
+  /* ---------- Start ---------- */
+  fillYears();
+  applySettings({});
+  refreshDays();
+  Object.keys(sel).forEach(function (k) { sel[k].addEventListener('change', onChange); });
+  // Keep the form's frame as tall as the widget (wrapping on narrow screens, error lines, fonts loading)
+  if (window.ResizeObserver) new ResizeObserver(resizeFrame).observe(document.querySelector('.wrap'));
+
+  if (!inJotform) {
+    var params = {};
+    new URLSearchParams(location.search).forEach(function (v, k) { params[k] = v; });
+    applySettings(params);
+    render(evaluate(), false);
+    return;
+  }
+
+  JFCustomWidget.subscribe('ready', function (formData) {
+    var raw = {};
+    try { raw = JFCustomWidget.getWidgetSettings() || {}; } catch (e) {}
+    applySettings(raw);
+    if (formData && formData.value) restore(formData.value);
+    onChange();
+    resizeFrame();
+  });
+
+  JFCustomWidget.subscribe('submit', function () {
+    var result = evaluate();
+    render(result, true);
+    // Empty counts as valid: Jotform's own Required setting decides whether an answer is needed.
+    JFCustomWidget.sendSubmit({ valid: result.state === 'empty' || result.state === 'ok', value: result.value });
+  });
+})();
+</script>
+</body>
+</html>
